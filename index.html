@@ -196,7 +196,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
   </div>
   <div id="sb-footer">
     <div class="feat-grid">
-      <div class="feat-pill"><strong>Gemini</strong>Google</div>
+      <div class="feat-pill"><strong>Claude</strong>Anthropic</div>
       <div class="feat-pill"><strong>Vision</strong>Immagini</div>
       <div class="feat-pill"><strong>Math</strong>LaTeX</div>
       <div class="feat-pill"><strong>Files</strong>PDF · TXT</div>
@@ -301,8 +301,8 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 
 <script>
 // ─── CONFIG ───────────────────────────────────────
-const GEMINI_API_KEY = 'AIzaSyCTTTGgv7ZycCkFOvHwcwRZbzNFXVl_dsY';
-const MODEL = 'gemini-1.5-flash';
+const ANTHROPIC_API_KEY = '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';
+const MODEL = 'claude-sonnet-4-5';
 
 const SYSTEM = `Sei Kyle, un assistente AI moderno, brillante e creativo creato da NeW Studios. Rispondi sempre in italiano a meno che non ti venga chiesto esplicitamente di usare un'altra lingua.
 
@@ -355,7 +355,7 @@ function newChat(title){
   const today = new Date().toDateString();
   sessions[id] = {
     id, title: title || 'Nuova chat',
-    messages: [], // Gemini format: [{role, content}]
+    messages: [], // Anthropic format: [{role, content}]
     date: today
   };
   currentId = id;
@@ -485,71 +485,12 @@ function showTyping(){
 }
 function hideTyping(){ const el=document.getElementById('typing-msg');if(el)el.remove() }
 
-// ─── GEMINI API CALL ───────────────────────────
-async function callGemini(userText, imgB64=null, imgMime=null, fileText=null){
+// ─── ANTHROPIC API CALL ───────────────────────────
+async function callAnthropic(userText, imgB64=null, imgMime=null, fileText=null){
   if(!currentId) newChat(userText.slice(0,28)||'Chat');
   const s = sessions[currentId];
 
-  let finalText = userText;
-
-  if(fileText){
-    finalText = `[FILE]\n${fileText}\n\n[USER]\n${userText}`;
-  }
-
-  s.messages.push({
-    role: 'user',
-    content: finalText,
-    _text: userText,
-    _imgSrc: attachedImg,
-    _fileLabel: fileText ? attachedFile : null
-  });
-
-  showTyping();
-
-  try {
-    const contents = s.messages.map(m => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }]
-    }));
-
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents,
-          systemInstruction: {
-            parts: [{ text: SYSTEM }]
-          }
-        })
-      }
-    );
-
-    const data = await res.json();
-
-    const reply =
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      '(nessuna risposta)';
-
-    hideTyping();
-
-    s.messages.push({
-      role: 'assistant',
-      content: reply,
-      _text: reply
-    });
-
-    appendBubble('assistant', reply);
-
-  } catch (e) {
-    hideTyping();
-    appendBubble('assistant', '⚠️ Errore Gemini: ' + e.message);
-    console.error(e);
-  }
-}
-
-  // Build user content array (Gemini format)
+  // Build user content array (Anthropic format)
   let userContent;
   if(imgB64){
     userContent = [
@@ -574,27 +515,20 @@ async function callGemini(userText, imgB64=null, imgMime=null, fileText=null){
   showTyping();
 
   try {
-    // Build messages array for Gemini API (no system in messages array)
+    // Build messages array for Anthropic API (no system in messages array)
     const apiMessages = s.messages.map(m => ({
       role: m.role,
       content: m.content
     }));
 
-    const res = await fetch(
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-  {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      contents,
-      systemInstruction: {
-        parts: [{ text: SYSTEM }]
-      }
-    })
-  }
-);
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 1500,
@@ -624,11 +558,11 @@ async function callGemini(userText, imgB64=null, imgMime=null, fileText=null){
   } catch(e) {
     hideTyping();
     let m = `⚠️ **Errore:** ${escH(e.message)}`;
-    if(e.message.includes('credit') || e.message.includes('billing')) m='💳 **Credito esaurito** o chiave non valida. Controlla il tuo account Gemini.';
+    if(e.message.includes('credit') || e.message.includes('billing')) m='💳 **Credito esaurito** o chiave non valida. Controlla il tuo account Anthropic.';
     else if(e.message.includes('rate')) m='⏳ **Troppe richieste**, aspetta qualche secondo.';
     else if(e.message.includes('authentication') || e.message.includes('api_key')) m='🔑 **Chiave API non valida.** Controlla la configurazione.';
     appendBubble('assistant', m);
-    console.error('Gemini API error:', e);
+    console.error('Anthropic API error:', e);
   }
 }
 
@@ -651,7 +585,7 @@ async function sendMessage(){
   const b64=attachedImgB64, mime=attachedImgType, ftext=attachedFileText;
   clearAttachments();
 
-  await callGemini(msg, b64, mime, ftext);
+  await callAnthropic(msg, b64, mime, ftext);
 }
 
 // ─── FILE / CAMERA ────────────────────────────────
@@ -722,7 +656,7 @@ async function sendMathFormula(){
   appendBubble('user',msg);
   document.getElementById('mathInput').value='';
   document.getElementById('math-preview').innerHTML='Anteprima formula...';
-  await callGemini(msg);
+  await callAnthropic(msg);
 }
 
 // ─── QUICK SEND ───────────────────────────────────
@@ -731,7 +665,7 @@ function quickSend(msg){
   document.getElementById('chat-area').style.display='flex';
   newChat(msg.slice(0,30));
   appendBubble('user',msg);
-  callGemini(msg);
+  callAnthropic(msg);
 }
 
 // ─── KEYBOARD ─────────────────────────────────────
@@ -757,7 +691,7 @@ document.getElementById('new-chat-btn').onclick=()=>{
 // ─── INIT ─────────────────────────────────────────
 newChat('Benvenuto');
 const initId = currentId;
-const welcomeMsg=`Ciao! Sono **Kyle** ✦\n\nCreato da *NeW Studios*, sono il tuo assistente AI personale — ora potenziato da **Gemini** di Google. Ecco cosa posso fare:\n\n- 💬 **Conversazione** su qualsiasi argomento\n- 🖼 **Analisi immagini** — carica o scatta una foto\n- 📄 **Lettura file** — TXT, CSV e altri\n- ∑ **Formule matematiche** con il pannello LaTeX\n- 📁 **Gestione chat** multiple nella barra laterale\n\nCome posso aiutarti oggi?`;
+const welcomeMsg=`Ciao! Sono **Kyle** ✦\n\nCreato da *NeW Studios*, sono il tuo assistente AI personale — ora potenziato da **Claude** di Anthropic. Ecco cosa posso fare:\n\n- 💬 **Conversazione** su qualsiasi argomento\n- 🖼 **Analisi immagini** — carica o scatta una foto\n- 📄 **Lettura file** — TXT, CSV e altri\n- ∑ **Formule matematiche** con il pannello LaTeX\n- 📁 **Gestione chat** multiple nella barra laterale\n\nCome posso aiutarti oggi?`;
 sessions[initId].messages.push({role:'assistant', content: welcomeMsg, _text: welcomeMsg});
 appendBubble('assistant', welcomeMsg, null, null, false);
 setActiveChatItem(initId);
