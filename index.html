@@ -301,8 +301,8 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 
 <script>
 // ─── CONFIG ───────────────────────────────────────
-const ANTHROPIC_API_KEY = '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';
-const MODEL = 'claude-sonnet-4-5';
+const GEMINI_API_KEY = 'AIzaSyCTTTGgv7ZycCkFOvHwcwRZbzNFXVl_dsY';
+const MODEL = 'gemini-1.5-flash';
 
 const SYSTEM = `Sei Kyle, un assistente AI moderno, brillante e creativo creato da NeW Studios. Rispondi sempre in italiano a meno che non ti venga chiesto esplicitamente di usare un'altra lingua.
 
@@ -486,9 +486,68 @@ function showTyping(){
 function hideTyping(){ const el=document.getElementById('typing-msg');if(el)el.remove() }
 
 // ─── ANTHROPIC API CALL ───────────────────────────
-async function callAnthropic(userText, imgB64=null, imgMime=null, fileText=null){
+async function callGemini(userText, imgB64=null, imgMime=null, fileText=null){
   if(!currentId) newChat(userText.slice(0,28)||'Chat');
   const s = sessions[currentId];
+
+  let finalText = userText;
+
+  if(fileText){
+    finalText = `[FILE]\n${fileText}\n\n[USER]\n${userText}`;
+  }
+
+  s.messages.push({
+    role: 'user',
+    content: finalText,
+    _text: userText,
+    _imgSrc: attachedImg,
+    _fileLabel: fileText ? attachedFile : null
+  });
+
+  showTyping();
+
+  try {
+    const contents = s.messages.map(m => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }]
+    }));
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents,
+          systemInstruction: {
+            parts: [{ text: SYSTEM }]
+          }
+        })
+      }
+    );
+
+    const data = await res.json();
+
+    const reply =
+      data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      '(nessuna risposta)';
+
+    hideTyping();
+
+    s.messages.push({
+      role: 'assistant',
+      content: reply,
+      _text: reply
+    });
+
+    appendBubble('assistant', reply);
+
+  } catch (e) {
+    hideTyping();
+    appendBubble('assistant', '⚠️ Errore Gemini: ' + e.message);
+    console.error(e);
+  }
+}
 
   // Build user content array (Anthropic format)
   let userContent;
@@ -585,7 +644,7 @@ async function sendMessage(){
   const b64=attachedImgB64, mime=attachedImgType, ftext=attachedFileText;
   clearAttachments();
 
-  await callAnthropic(msg, b64, mime, ftext);
+  await callGemini(msg, b64, mime, ftext);
 }
 
 // ─── FILE / CAMERA ────────────────────────────────
@@ -656,7 +715,7 @@ async function sendMathFormula(){
   appendBubble('user',msg);
   document.getElementById('mathInput').value='';
   document.getElementById('math-preview').innerHTML='Anteprima formula...';
-  await callAnthropic(msg);
+  await callGemini(msg);
 }
 
 // ─── QUICK SEND ───────────────────────────────────
@@ -665,7 +724,7 @@ function quickSend(msg){
   document.getElementById('chat-area').style.display='flex';
   newChat(msg.slice(0,30));
   appendBubble('user',msg);
-  callAnthropic(msg);
+  callGemini(msg);
 }
 
 // ─── KEYBOARD ─────────────────────────────────────
