@@ -137,12 +137,6 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 #camBtn,#fileBtn{background:var(--bg4);color:var(--muted);border:1px solid var(--border2)}
 #camBtn:hover,#fileBtn:hover{background:var(--bg5);color:var(--text);border-color:var(--border2)}
 #tools-row{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
-#imggen-wrap{flex:1;display:flex;gap:6px}
-#imgGenInput{flex:1;background:var(--bg4);border:1px solid var(--border);border-radius:22px;padding:7px 16px;color:var(--text);font-size:.78rem;outline:none;font-family:var(--sans);min-width:0;transition:.2s}
-#imgGenInput::placeholder{color:var(--muted2)}
-#imgGenInput:focus{border-color:var(--gold-dim)}
-#imgGenSubmit{background:var(--bg4);color:var(--muted);border:1px solid var(--border2);border-radius:22px;padding:7px 16px;cursor:pointer;font-size:.75rem;font-weight:500;white-space:nowrap;font-family:var(--sans);transition:.2s}
-#imgGenSubmit:hover{color:var(--gold);border-color:var(--border3)}
 .formula-toggle{background:var(--bg4);color:var(--muted);border:1px solid var(--border);border-radius:22px;padding:7px 14px;cursor:pointer;font-size:.72rem;font-family:var(--mono);transition:.2s;white-space:nowrap}
 .formula-toggle:hover{color:var(--text);border-color:var(--border2)}
 .formula-toggle.active{color:var(--gold);border-color:var(--gold-dim);background:var(--gold-glow)}
@@ -165,7 +159,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
   .quick-grid{grid-template-columns:1fr 1fr}
   #welcome h1{font-size:2rem}
 }
-@media(max-width:420px){.quick-grid{grid-template-columns:1fr}#imggen-wrap{display:none}}
+@media(max-width:420px){.quick-grid{grid-template-columns:1fr}}
 *{scrollbar-width:thin;scrollbar-color:var(--muted2) transparent}
 </style>
 </head>
@@ -202,12 +196,12 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
   </div>
   <div id="sb-footer">
     <div class="feat-grid">
-      <div class="feat-pill"><strong>GPT-4o</strong>OpenAI</div>
+      <div class="feat-pill"><strong>Claude</strong>Anthropic</div>
       <div class="feat-pill"><strong>Vision</strong>Immagini</div>
       <div class="feat-pill"><strong>Math</strong>LaTeX</div>
       <div class="feat-pill"><strong>Files</strong>PDF · TXT</div>
     </div>
-    <div class="sb-brand">Kyle AI · v3.1 · <b>NeW Studios</b></div>
+    <div class="sb-brand">Kyle AI · v3.2 · <b>NeW Studios</b></div>
   </div>
 </div>
 
@@ -218,7 +212,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     </button>
     <div class="topbar-center">
       <div class="tb-title">KYLE</div>
-      <div class="tb-model">gpt-4o</div>
+      <div class="tb-model">claude-sonnet-4-5</div>
     </div>
     <div class="tb-right">
       <div class="status-dot"></div>
@@ -296,10 +290,6 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
       </button>
     </div>
     <div id="tools-row">
-      <div id="imggen-wrap">
-        <input id="imgGenInput" placeholder="🎨 Descrivi un'immagine da generare…"/>
-        <button id="imgGenSubmit" onclick="generateImage()">Genera</button>
-      </div>
       <button class="formula-toggle" id="mathToggle" onclick="toggleMath()">∑ Formule</button>
     </div>
   </div>
@@ -311,8 +301,8 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 
 <script>
 // ─── CONFIG ───────────────────────────────────────
-const OPENAI_API_KEY = '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';
-const MODEL = 'gpt-4o';
+const ANTHROPIC_API_KEY = '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';
+const MODEL = 'claude-sonnet-4-5';
 
 const SYSTEM = `Sei Kyle, un assistente AI moderno, brillante e creativo creato da NeW Studios. Rispondi sempre in italiano a meno che non ti venga chiesto esplicitamente di usare un'altra lingua.
 
@@ -320,7 +310,7 @@ Usa Markdown ricco:
 - **grassetto** per concetti chiave
 - *corsivo* per enfasi leggera
 - \`codice inline\` per variabili/comandi
-- \`\`\`linguaggio\\n...\\n\`\`\` per blocchi di codice
+- \`\`\`linguaggio\n...\n\`\`\` per blocchi di codice
 - ### Titoli per strutturare risposte lunghe
 - Tabelle Markdown per confronti
 - > Citazioni per citare fonti o fare riflessioni
@@ -365,7 +355,7 @@ function newChat(title){
   const today = new Date().toDateString();
   sessions[id] = {
     id, title: title || 'Nuova chat',
-    messages: [], // OpenAI format: [{role, content}]
+    messages: [], // Anthropic format: [{role, content}]
     date: today
   };
   currentId = id;
@@ -420,7 +410,7 @@ function renderChat(){
   s.messages.forEach(m=>{
     if(m._display === false) return;
     const role = m.role === 'user' ? 'user' : 'assistant';
-    const text = typeof m.content === 'string' ? m.content : (m._text || '');
+    const text = m._text || '';
     appendBubble(role, text, m._imgSrc, m._fileLabel, false);
   });
   ca.scrollTop=ca.scrollHeight;
@@ -495,44 +485,54 @@ function showTyping(){
 }
 function hideTyping(){ const el=document.getElementById('typing-msg');if(el)el.remove() }
 
-// ─── OPENAI API CALL ──────────────────────────────
-async function callOpenAI(userText, imgB64=null, imgMime=null, fileText=null){
+// ─── ANTHROPIC API CALL ───────────────────────────
+async function callAnthropic(userText, imgB64=null, imgMime=null, fileText=null){
   if(!currentId) newChat(userText.slice(0,28)||'Chat');
   const s = sessions[currentId];
 
-  // Build user content array
+  // Build user content array (Anthropic format)
   let userContent;
   if(imgB64){
     userContent = [
-      { type:'image_url', image_url:{ url:`data:${imgMime||'image/jpeg'};base64,${imgB64}`, detail:'high' } },
-      { type:'text', text: userText || 'Descrivi questa immagine in dettaglio.' }
+      {
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: imgMime || 'image/jpeg',
+          data: imgB64
+        }
+      },
+      { type: 'text', text: userText || 'Descrivi questa immagine in dettaglio.' }
     ];
   } else if(fileText){
-    userContent = [{ type:'text', text:`[Contenuto del file allegato]:\n${fileText}\n\n[Domanda]: ${userText}` }];
+    userContent = [{ type: 'text', text: `[Contenuto del file allegato]:\n${fileText}\n\n[Domanda]: ${userText}` }];
   } else {
-    userContent = [{ type:'text', text: userText }];
+    userContent = [{ type: 'text', text: userText }];
   }
 
-  // Add to history (store for API)
-  s.messages.push({ role:'user', content: userContent, _text: userText });
+  // Save message with display metadata
+  s.messages.push({ role: 'user', content: userContent, _text: userText, _imgSrc: attachedImg, _fileLabel: fileText ? attachedFile : null });
   showTyping();
 
-  try{
-    // Build messages array for API: system + history
-    const apiMessages = [
-      { role:'system', content: SYSTEM },
-      ...s.messages.map(m => ({ role: m.role, content: m.content }))
-    ];
+  try {
+    // Build messages array for Anthropic API (no system in messages array)
+    const apiMessages = s.messages.map(m => ({
+      role: m.role,
+      content: m.content
+    }));
 
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 1500,
+        system: SYSTEM,
         messages: apiMessages
       })
     });
@@ -543,8 +543,9 @@ async function callOpenAI(userText, imgB64=null, imgMime=null, fileText=null){
       throw new Error(errMsg);
     }
 
-    const reply = data.choices?.[0]?.message?.content || '(nessuna risposta)';
-    s.messages.push({ role:'assistant', content: reply, _text: reply });
+    // Anthropic returns content as array of blocks
+    const reply = data.content?.[0]?.text || '(nessuna risposta)';
+    s.messages.push({ role: 'assistant', content: reply, _text: reply });
     hideTyping();
     appendBubble('assistant', reply);
 
@@ -554,14 +555,14 @@ async function callOpenAI(userText, imgB64=null, imgMime=null, fileText=null){
     }
     document.querySelectorAll(`.chat-item[data-id="${currentId}"] .chat-label`).forEach(el=>el.textContent=s.title.slice(0,28));
 
-  } catch(e){
+  } catch(e) {
     hideTyping();
     let m = `⚠️ **Errore:** ${escH(e.message)}`;
-    if(e.message.includes('quota') || e.message.includes('billing')) m='💳 **Credito esaurito** o chiave non valida. Controlla il tuo account OpenAI.';
+    if(e.message.includes('credit') || e.message.includes('billing')) m='💳 **Credito esaurito** o chiave non valida. Controlla il tuo account Anthropic.';
     else if(e.message.includes('rate')) m='⏳ **Troppe richieste**, aspetta qualche secondo.';
-    else if(e.message.includes('invalid_api_key')) m='🔑 **Chiave API non valida.** Controlla la configurazione.';
+    else if(e.message.includes('authentication') || e.message.includes('api_key')) m='🔑 **Chiave API non valida.** Controlla la configurazione.';
     appendBubble('assistant', m);
-    console.error('OpenAI API error:', e);
+    console.error('Anthropic API error:', e);
   }
 }
 
@@ -573,7 +574,7 @@ async function sendMessage(){
   setTimeout(()=>document.getElementById('sendBtn').disabled=false, 3000);
 
   if(!currentId) newChat(msg.slice(0,28)||'Chat');
-  const s = sessions[currentId];
+
   const imgSrc=attachedImg, fileL=attachedFile;
 
   // Display user bubble
@@ -584,44 +585,7 @@ async function sendMessage(){
   const b64=attachedImgB64, mime=attachedImgType, ftext=attachedFileText;
   clearAttachments();
 
-  await callOpenAI(msg, b64, mime, ftext);
-}
-
-// ─── IMAGE GENERATION (DALL-E 3) ──────────────────
-async function generateImage(){
-  const prompt = document.getElementById('imgGenInput').value.trim();
-  if(!prompt){ alert('Scrivi una descrizione!'); return; }
-  if(!currentId) newChat('Immagine: '+prompt.slice(0,22));
-  appendBubble('user', '🎨 Genera: ' + prompt);
-  document.getElementById('imgGenInput').value='';
-  showTyping();
-  try{
-    const res = await fetch('https://api.openai.com/v1/images/generations',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt: prompt,
-        n: 1,
-        size: '1024x1024',
-        quality: 'standard'
-      })
-    });
-    const data = await res.json();
-    if(!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
-    const url = data.data?.[0]?.url;
-    if(!url) throw new Error('Nessuna immagine ricevuta');
-    const s = sessions[currentId];
-    s.messages.push({role:'assistant', content:'✅ Immagine generata!', _text:'✅ Immagine generata!'});
-    hideTyping();
-    appendBubble('assistant','✅ **Immagine generata con DALL·E 3!**', url);
-  } catch(e){
-    hideTyping();
-    appendBubble('assistant','⚠️ **Errore generazione:** '+escH(e.message));
-  }
+  await callAnthropic(msg, b64, mime, ftext);
 }
 
 // ─── FILE / CAMERA ────────────────────────────────
@@ -692,7 +656,7 @@ async function sendMathFormula(){
   appendBubble('user',msg);
   document.getElementById('mathInput').value='';
   document.getElementById('math-preview').innerHTML='Anteprima formula...';
-  await callOpenAI(msg);
+  await callAnthropic(msg);
 }
 
 // ─── QUICK SEND ───────────────────────────────────
@@ -701,7 +665,7 @@ function quickSend(msg){
   document.getElementById('chat-area').style.display='flex';
   newChat(msg.slice(0,30));
   appendBubble('user',msg);
-  callOpenAI(msg);
+  callAnthropic(msg);
 }
 
 // ─── KEYBOARD ─────────────────────────────────────
@@ -727,7 +691,7 @@ document.getElementById('new-chat-btn').onclick=()=>{
 // ─── INIT ─────────────────────────────────────────
 newChat('Benvenuto');
 const initId = currentId;
-const welcomeMsg=`Ciao! Sono **Kyle** ✦\n\nCreato da *NeW Studios*, sono il tuo assistente AI personale — ora potenziato da **GPT-4o**. Ecco cosa posso fare:\n\n- 💬 **Conversazione** su qualsiasi argomento\n- 🖼 **Analisi immagini** — carica o scatta una foto\n- 📄 **Lettura file** — TXT, CSV e altri\n- 🎨 **Generazione immagini** con DALL·E 3\n- ∑ **Formule matematiche** con il pannello LaTeX\n- 📁 **Gestione chat** multiple nella barra laterale\n\nCome posso aiutarti oggi?`;
+const welcomeMsg=`Ciao! Sono **Kyle** ✦\n\nCreato da *NeW Studios*, sono il tuo assistente AI personale — ora potenziato da **Claude** di Anthropic. Ecco cosa posso fare:\n\n- 💬 **Conversazione** su qualsiasi argomento\n- 🖼 **Analisi immagini** — carica o scatta una foto\n- 📄 **Lettura file** — TXT, CSV e altri\n- ∑ **Formule matematiche** con il pannello LaTeX\n- 📁 **Gestione chat** multiple nella barra laterale\n\nCome posso aiutarti oggi?`;
 sessions[initId].messages.push({role:'assistant', content: welcomeMsg, _text: welcomeMsg});
 appendBubble('assistant', welcomeMsg, null, null, false);
 setActiveChatItem(initId);
