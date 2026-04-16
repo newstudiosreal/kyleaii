@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Kyle AI — NeW Studios (DeepSeek)</title>
+<title>Kyle AI — NeW Studios</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js"></script>
@@ -196,12 +196,12 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
   </div>
   <div id="sb-footer">
     <div class="feat-grid">
-      <div class="feat-pill"><strong>DeepSeek</strong>Chat</div>
-      <div class="feat-pill"><strong>Files</strong>PDF · TXT</div>
+      <div class="feat-pill"><strong>Gemini</strong>Google</div>
+      <div class="feat-pill"><strong>Vision</strong>Immagini</div>
       <div class="feat-pill"><strong>Math</strong>LaTeX</div>
-      <div class="feat-pill"><strong>Fast</strong>Risposte</div>
+      <div class="feat-pill"><strong>Files</strong>PDF · TXT</div>
     </div>
-    <div class="sb-brand">Kyle AI · DeepSeek · <b>NeW Studios</b></div>
+    <div class="sb-brand">Kyle AI · v3.2 · <b>NeW Studios</b></div>
   </div>
 </div>
 
@@ -212,7 +212,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     </button>
     <div class="topbar-center">
       <div class="tb-title">KYLE</div>
-      <div class="tb-model">deepseek-chat</div>
+      <div class="tb-model">gemini-1.5-flash</div>
     </div>
     <div class="tb-right">
       <div class="status-dot"></div>
@@ -225,7 +225,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
   <div id="welcome">
     <div class="welcome-logo">K</div>
     <h1>Ciao, sono <em>Kyle</em></h1>
-    <p>L'assistente AI di NeW Studios, ora potenziato da DeepSeek. Chatto, leggo file di testo, risolvo formule e molto altro.</p>
+    <p>L'assistente AI di NeW Studios. Chatto, leggo immagini, risolvo formule e molto altro.</p>
     <div class="quick-grid">
       <button class="quick-btn" onclick="quickSend('Ciao Kyle, presentati e dimmi cosa puoi fare!')">
         <span class="qb-icon">👋</span>
@@ -301,9 +301,8 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 
 <script>
 // ─── CONFIG ───────────────────────────────────────
-const DEEPSEEK_API_KEY = 'sk-00a8a29324eb435ebec26c75e3192a8e';
-const MODEL = 'deepseek-chat';
-const API_URL = 'https://api.deepseek.com/v1/chat/completions';
+const GEMINI_API_KEY = 'AIzaSyCTTTGgv7ZycCkFOvHwcwRZbzNFXVl_dsY';
+const MODEL = 'gemini-1.5-flash';
 
 const SYSTEM = `Sei Kyle, un assistente AI moderno, brillante e creativo creato da NeW Studios. Rispondi sempre in italiano a meno che non ti venga chiesto esplicitamente di usare un'altra lingua.
 
@@ -354,11 +353,7 @@ function toggleFolder(el){
 function newChat(title){
   const id = uid();
   const today = new Date().toDateString();
-  sessions[id] = {
-    id, title: title || 'Nuova chat',
-    messages: [], // array di {role, content, _text, _imgSrc, _fileLabel}
-    date: today
-  };
+  sessions[id] = { id, title: title || 'Nuova chat', messages: [], date: today };
   currentId = id;
   addChatToSidebar(id);
   renderChat();
@@ -409,10 +404,8 @@ function renderChat(){
   ca.innerHTML='';
   const s = sessions[currentId];
   s.messages.forEach(m=>{
-    if(m._display === false) return;
     const role = m.role === 'user' ? 'user' : 'assistant';
-    const text = m._text || '';
-    appendBubble(role, text, m._imgSrc, m._fileLabel, false);
+    appendBubble(role, m._text || '', m._imgSrc || null, m._fileLabel || null, false);
   });
   ca.scrollTop=ca.scrollHeight;
 }
@@ -438,9 +431,9 @@ function parseMarkdown(txt){
     const ths = header.split('|').filter(c=>c.trim()).map(c=>`<th>${c.trim()}</th>`).join('');
     const trs = rows.trim().split('\n').map(r=>{
       const tds = r.split('|').filter(c=>c.trim()).map(c=>`<td>${c.trim()}</td>`).join('');
-      return `<tr>${tds}<tr>`;
+      return `<tr>${tds}</tr>`;
     }).join('');
-    return `<table><thead><tr>${ths}</table></thead><tbody>${trs}</tbody></table>`;
+    return `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
   });
   txt = txt.replace(/^[-*] (.+)$/gm,'<li>$1</li>');
   txt = txt.replace(/^\d+\. (.+)$/gm,'<li>$1</li>');
@@ -486,100 +479,80 @@ function showTyping(){
 }
 function hideTyping(){ const el=document.getElementById('typing-msg');if(el)el.remove() }
 
-// ─── DEEPSEEK API CALL ────────────────────────────
-async function callDeepSeek(userText, imgB64=null, imgMime=null, fileText=null){
+// ─── GEMINI API CALL ──────────────────────────────
+async function callGemini(userText, imgB64=null, imgMime=null, fileText=null){
   if(!currentId) newChat(userText.slice(0,28)||'Chat');
   const s = sessions[currentId];
 
-  // Se c'è un'immagine, avvisa l'utente che DeepSeek non la supporta
-  let finalText = userText;
-  if(imgB64){
-    finalText = userText + "\n\n⚠️ *Nota: DeepSeek non supporta la visione delle immagini. Ho ignorato l'allegato.*";
-    // Rimuoviamo l'allegato visivo
-    attachedImg = attachedImgB64 = attachedImgType = null;
-    document.getElementById('img-preview-wrap').style.display='none';
-  }
-  if(fileText){
-    finalText = `[CONTENUTO FILE: ${attachedFile}]\n${fileText}\n\n[DOMANDA UTENTE]\n${userText}`;
-  }
+  // Build the user message text
+  let msgText = userText;
+  if(fileText) msgText = `[FILE ALLEGATO]\n${fileText}\n\n[DOMANDA]\n${userText}`;
 
+  // Save to history
   s.messages.push({
     role: 'user',
-    content: finalText,
     _text: userText,
-    _imgSrc: attachedImg,  // se c'era immagine, verrà mostrata ma non processata
-    _fileLabel: fileText ? attachedFile : null
+    _imgSrc: attachedImg,
+    _fileLabel: fileText ? attachedFile : null,
+    _content: { text: msgText, imgB64, imgMime }
   });
+
+  // Update chat title on first message
+  if(s.messages.length === 1){
+    s.title = userText.slice(0,28) || 'Chat';
+    document.querySelectorAll(`.chat-item[data-id="${currentId}"] .chat-label`).forEach(el=>el.textContent=s.title);
+  }
 
   showTyping();
 
   try {
-    // Costruzione della cronologia per DeepSeek (formato OpenAI)
-    const apiMessages = [];
-    // Aggiungiamo il system prompt come primo messaggio
-    apiMessages.push({ role: 'system', content: SYSTEM });
-    // Aggiungiamo i messaggi precedenti (escludendo eventuali metadati)
-    for(const m of s.messages){
-      // Usa il campo 'content' che contiene il testo effettivo (già arricchito se file)
-      let content = m.content;
-      if(m.role === 'user' && m._fileLabel && !content.includes('[CONTENUTO FILE')){
-        // caso legacy: ricostruisci
-        if(m._fileLabel && attachedFileText){
-          content = `[CONTENUTO FILE: ${m._fileLabel}]\n${attachedFileText}\n\n[DOMANDA UTENTE]\n${m._text}`;
-        } else {
-          content = m._text;
+    // Build Gemini contents array from history
+    const contents = s.messages.map(m => {
+      if(m.role === 'user'){
+        const parts = [];
+        if(m._content.imgB64){
+          parts.push({ inlineData: { mimeType: m._content.imgMime || 'image/jpeg', data: m._content.imgB64 } });
         }
-      } else if(m.role === 'user' && !content){
-        content = m._text || '';
+        parts.push({ text: m._content.text || '' });
+        return { role: 'user', parts };
+      } else {
+        return { role: 'model', parts: [{ text: m._text || '' }] };
       }
-      apiMessages.push({ role: m.role === 'assistant' ? 'assistant' : 'user', content: content });
-    }
-
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: apiMessages,
-        max_tokens: 2000,
-        temperature: 0.7
-      })
     });
 
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents,
+          systemInstruction: { parts: [{ text: SYSTEM }] },
+          generationConfig: { maxOutputTokens: 2048, temperature: 0.9 }
+        })
+      }
+    );
+
     const data = await res.json();
+
     if(!res.ok){
       const errMsg = data.error?.message || `HTTP ${res.status}`;
       throw new Error(errMsg);
     }
 
-    const reply = data.choices?.[0]?.message?.content || '(risposta vuota)';
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '(nessuna risposta)';
+
+    s.messages.push({ role: 'model', _text: reply, _content: { text: reply } });
     hideTyping();
-
-    s.messages.push({
-      role: 'assistant',
-      content: reply,
-      _text: reply
-    });
-
     appendBubble('assistant', reply);
-
-    // Aggiorna titolo chat se primo messaggio utente
-    if(s.messages.filter(m => m.role === 'user').length === 1){
-      s.title = userText.slice(0,28) || 'Chat';
-      document.querySelectorAll(`.chat-item[data-id="${currentId}"] .chat-label`).forEach(el=>el.textContent=s.title.slice(0,28));
-    }
 
   } catch(e) {
     hideTyping();
-    let m = `⚠️ **Errore DeepSeek:** ${escH(e.message)}`;
-    if(e.message.includes('authentication') || e.message.includes('api_key')) m='🔑 **Chiave API non valida.** Controlla la configurazione.';
-    else if(e.message.includes('rate')) m='⏳ **Troppe richieste**, attendi qualche secondo.';
-    else if(e.message.includes('balance') || e.message.includes('credit')) m='💳 **Credito esaurito** – ricarica il tuo account DeepSeek.';
+    let m = `⚠️ **Errore:** ${escH(e.message)}`;
+    if(e.message.includes('API_KEY') || e.message.includes('key')) m = '🔑 **Chiave API non valida.** Controlla la configurazione.';
+    else if(e.message.includes('quota') || e.message.includes('limit')) m = '⏳ **Limite raggiunto**, aspetta qualche secondo.';
     appendBubble('assistant', m);
-    console.error('DeepSeek API error:', e);
+    console.error('Gemini API error:', e);
   }
 }
 
@@ -592,17 +565,15 @@ async function sendMessage(){
 
   if(!currentId) newChat(msg.slice(0,28)||'Chat');
 
-  const imgSrc=attachedImg, fileL=attachedFile;
-
-  // Mostra il messaggio utente nella UI
-  appendBubble('user', msg, imgSrc, fileL);
+  // Show user bubble
+  appendBubble('user', msg, attachedImg, attachedFileText ? attachedFile : null);
 
   document.getElementById('userInput').value='';
   document.getElementById('userInput').style.height='auto';
   const b64=attachedImgB64, mime=attachedImgType, ftext=attachedFileText;
   clearAttachments();
 
-  await callDeepSeek(msg, b64, mime, ftext);
+  await callGemini(msg, b64, mime, ftext);
 }
 
 // ─── FILE / CAMERA ────────────────────────────────
@@ -673,7 +644,7 @@ async function sendMathFormula(){
   appendBubble('user',msg);
   document.getElementById('mathInput').value='';
   document.getElementById('math-preview').innerHTML='Anteprima formula...';
-  await callDeepSeek(msg);
+  await callGemini(msg);
 }
 
 // ─── QUICK SEND ───────────────────────────────────
@@ -682,7 +653,7 @@ function quickSend(msg){
   document.getElementById('chat-area').style.display='flex';
   newChat(msg.slice(0,30));
   appendBubble('user',msg);
-  callDeepSeek(msg);
+  callGemini(msg);
 }
 
 // ─── KEYBOARD ─────────────────────────────────────
@@ -708,8 +679,8 @@ document.getElementById('new-chat-btn').onclick=()=>{
 // ─── INIT ─────────────────────────────────────────
 newChat('Benvenuto');
 const initId = currentId;
-const welcomeMsg=`Ciao! Sono **Kyle** ✦\n\nCreato da *NeW Studios*, sono il tuo assistente AI personale — ora potenziato da **DeepSeek**. Ecco cosa posso fare:\n\n- 💬 **Conversazione** su qualsiasi argomento\n- 📄 **Lettura file** — TXT, CSV, PDF, DOCX\n- ∑ **Formule matematiche** con il pannello LaTeX\n- 📁 **Gestione chat** multiple nella barra laterale\n- ⚡ **Risposte veloci** e ragionamento approfondito\n\n*Nota: le immagini non sono supportate da DeepSeek, ma puoi allegare file di testo.*\n\nCome posso aiutarti oggi?`;
-sessions[initId].messages.push({role:'assistant', content: welcomeMsg, _text: welcomeMsg});
+const welcomeMsg=`Ciao! Sono **Kyle** ✦\n\nCreato da *NeW Studios*, sono il tuo assistente AI personale — potenziato da **Gemini** di Google. Ecco cosa posso fare:\n\n- 💬 **Conversazione** su qualsiasi argomento\n- 🖼 **Analisi immagini** — carica o scatta una foto\n- 📄 **Lettura file** — TXT, CSV e altri\n- ∑ **Formule matematiche** con il pannello LaTeX\n- 📁 **Gestione chat** multiple nella barra laterale\n\nCome posso aiutarti oggi?`;
+sessions[initId].messages.push({ role: 'model', _text: welcomeMsg, _content: { text: welcomeMsg } });
 appendBubble('assistant', welcomeMsg, null, null, false);
 setActiveChatItem(initId);
 </script>
