@@ -301,7 +301,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 
 <script>
 // ─── CONFIG ───────────────────────────────────────
-const GEMINI_API_KEY = 'AIzaSyCTTTGgv7ZycCkFOvHwcwRZbzNFXVl_dsY';
+const GEMINI_API_KEY = '173430cc83ef4f70b02188ff1605c01f.IvTPA6zeQMvFPPYv Z.ai';
 const MODEL = 'gemini-1.5-flash';
 
 const SYSTEM = `Sei Kyle, un assistente AI moderno, brillante e creativo creato da NeW Studios. Rispondi sempre in italiano a meno che non ti venga chiesto esplicitamente di usare un'altra lingua.
@@ -484,11 +484,9 @@ async function callGemini(userText, imgB64=null, imgMime=null, fileText=null){
   if(!currentId) newChat(userText.slice(0,28)||'Chat');
   const s = sessions[currentId];
 
-  // Build the user message text
   let msgText = userText;
   if(fileText) msgText = `[FILE ALLEGATO]\n${fileText}\n\n[DOMANDA]\n${userText}`;
 
-  // Save to history
   s.messages.push({
     role: 'user',
     _text: userText,
@@ -497,7 +495,6 @@ async function callGemini(userText, imgB64=null, imgMime=null, fileText=null){
     _content: { text: msgText, imgB64, imgMime }
   });
 
-  // Update chat title on first message
   if(s.messages.length === 1){
     s.title = userText.slice(0,28) || 'Chat';
     document.querySelectorAll(`.chat-item[data-id="${currentId}"] .chat-label`).forEach(el=>el.textContent=s.title);
@@ -506,7 +503,6 @@ async function callGemini(userText, imgB64=null, imgMime=null, fileText=null){
   showTyping();
 
   try {
-    // Build Gemini contents array from history
     const contents = s.messages.map(m => {
       if(m.role === 'user'){
         const parts = [];
@@ -565,7 +561,6 @@ async function sendMessage(){
 
   if(!currentId) newChat(msg.slice(0,28)||'Chat');
 
-  // Show user bubble
   appendBubble('user', msg, attachedImg, attachedFileText ? attachedFile : null);
 
   document.getElementById('userInput').value='';
