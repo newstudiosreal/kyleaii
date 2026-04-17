@@ -379,7 +379,8 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 <script>
 // ─── CONFIG ───────────────────────────────────────
 const OPENROUTER_API_KEY = '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';
-const MODEL = 'google/gemma-4-31b-it:free';
+const MODEL_TEXT = 'nvidia/nemotron-nano-2-vl-12b:free';
+const MODEL_VISION = 'google/gemini-2.5-flash-preview:thinking';
 const STORAGE_KEY = 'kyle_sessions_v1';
 const SIDEBAR_KEY = 'kyle_sidebar_v1';
 
@@ -700,7 +701,7 @@ async function callAI(userText, imgB64=null, imgMime=null, fileText=null){
         'X-Title': 'Kyle AI'
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: imgB64 ? MODEL_VISION : MODEL_TEXT,
         messages,
         max_tokens: 2048,
         temperature: 0.9
